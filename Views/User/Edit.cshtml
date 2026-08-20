@@ -1,0 +1,60 @@
+@model UpdateUserViewModel
+@{
+    ViewData["Title"] = "Edit User";
+}
+
+<div class="max-w-2xl mx-auto">
+    <div class="mb-8">
+        <a asp-action="Index" class="text-sm text-primary-600 hover:text-primary-800 flex items-center">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back to Users
+        </a>
+        <h1 class="mt-4 text-2xl font-bold text-gray-900">Edit User</h1>
+        <p class="mt-1 text-sm text-gray-500">Changes will be tracked and written to the audit log via MediatR.</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
+        <form asp-action="Edit" method="post" class="space-y-6">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+
+            <div>
+                <label asp-for="Name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <input asp-for="Name" class="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition" />
+                <span asp-validation-for="Name" class="text-sm text-danger-600"></span>
+            </div>
+
+            <div>
+                <label asp-for="Email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input asp-for="Email" type="email" class="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition" />
+                <span asp-validation-for="Email" class="text-sm text-danger-600"></span>
+            </div>
+
+            <div>
+                <label asp-for="MobileNo" class="block text-sm font-medium text-gray-700 mb-1">Mobile No</label>
+                <input asp-for="MobileNo" type="tel" class="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition" />
+                <span asp-validation-for="MobileNo" class="text-sm text-danger-600"></span>
+            </div>
+
+            <div>
+                <label asp-for="Limit" class="block text-sm font-medium text-gray-700 mb-1">Limit</label>
+                <input asp-for="Limit" type="number" step="1000" class="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition" />
+                <span asp-validation-for="Limit" class="text-sm text-danger-600"></span>
+            </div>
+
+            <div>
+                <label asp-for="Reason" class="block text-sm font-medium text-gray-700 mb-1">Reason (optional)</label>
+                <textarea asp-for="Reason" rows="2" class="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition" placeholder="Customer requested higher limit..."></textarea>
+            </div>
+
+            <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-100">
+                <a asp-action="Index" class="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition">Cancel</a>
+                <button type="submit" class="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

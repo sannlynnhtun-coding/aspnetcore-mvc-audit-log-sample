@@ -1,0 +1,82 @@
+@model IReadOnlyList<AuditLog>
+@{
+    ViewData["Title"] = "Audit Logs";
+}
+
+<div class="mb-8">
+    <h1 class="text-2xl font-bold text-gray-900">Audit Logs</h1>
+    <p class="mt-1 text-sm text-gray-500">All actions written through MediatR <code class="text-xs bg-gray-100 px-1 rounded">AuditEvent</code></p>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">When</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Action</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actor</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Target</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Changes / Reason</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                        No audit logs yet. Perform some actions on Users.
+                    </td>
+                </tr>
+            }
+            @foreach (var log in Model)
+            {
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        @log.ActionDateTime.ToString("yyyy-MM-dd HH:mm:ss")
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
+                            @(log.Action == "CREATE" ? "bg-blue-100 text-blue-800" :
+                              log.Action == "UPDATE" ? "bg-indigo-100 text-indigo-800" :
+                              log.Action == "APPROVE" ? "bg-green-100 text-green-800" :
+                              log.Action == "REJECT" ? "bg-red-100 text-red-800" :
+                              log.Action == "DELETE" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800")">
+                            @log.Action
+                        </span>
+                        <div class="text-xs text-gray-400 mt-0.5">@log.ResourceType</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">@log.ActorUserId</div>
+                        <div class="text-xs text-gray-500">@log.ActorRole</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">@log.TargetDisplayName</div>
+                        <div class="text-xs font-mono text-gray-500">@log.TargetId</div>
+                        @if (!string.IsNullOrEmpty(log.TargetLookupKey))
+                        {
+                            <div class="text-xs text-gray-500">Lookup: @log.TargetLookupKey</div>
+                        }
+                        @if (!string.IsNullOrEmpty(log.TargetUserMobileNo))
+                        {
+                            <div class="text-xs text-gray-500">Mobile: @log.TargetUserMobileNo</div>
+                        }
+                    </td>
+                    <td class="px-6 py-4">
+                        @if (!string.IsNullOrEmpty(log.Changes))
+                        {
+                            <div class="text-xs font-mono text-gray-700 bg-gray-50 rounded px-2 py-1 max-w-md truncate" title="@log.Changes">
+                                @log.Changes
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(log.Reason))
+                        {
+                            <div class="text-xs text-gray-500 italic mt-1">“@log.Reason”</div>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

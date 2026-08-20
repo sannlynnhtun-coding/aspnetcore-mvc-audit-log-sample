@@ -1,0 +1,147 @@
+@model User
+@{
+    ViewData["Title"] = "User Details";
+    var auditLogs = ViewBag.AuditLogs as IReadOnlyList<AuditLog> ?? new List<AuditLog>();
+}
+
+<div class="mb-8">
+    <a asp-action="Index" class="text-sm text-primary-600 hover:text-primary-800 flex items-center">
+        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Back to Users
+    </a>
+    <div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">@Model.Name</h1>
+            <p class="text-sm text-gray-500 font-mono">@Model.Id</p>
+        </div>
+        <div class="flex space-x-2">
+            <a asp-action="Edit" asp-route-id="@Model.Id"
+               class="px-4 py-2 bg-white border border-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 transition">
+                Edit
+            </a>
+            @if (Model.Status == "Pending")
+            {
+                <form asp-action="Approve" method="post" class="inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <input type="hidden" name="reason" value="Approved from details" />
+                    <button type="submit" class="px-4 py-2 bg-success-600 hover:bg-success-700 text-white text-sm font-medium rounded-lg transition">
+                        Approve
+                    </button>
+                </form>
+                <form asp-action="Reject" method="post" class="inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <input type="hidden" name="reason" value="Rejected from details" />
+                    <button type="submit" class="px-4 py-2 bg-danger-600 hover:bg-danger-700 text-white text-sm font-medium rounded-lg transition">
+                        Reject
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- User Info -->
+    <div class="lg:col-span-1">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">User Information</h2>
+            <dl class="space-y-4">
+                <div>
+                    <dt class="text-xs font-medium text-gray-500 uppercase">Email</dt>
+                    <dd class="mt-1 text-sm text-gray-900">@Model.Email</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-medium text-gray-500 uppercase">Mobile No</dt>
+                    <dd class="mt-1 text-sm text-gray-900">@(string.IsNullOrWhiteSpace(Model.MobileNo) ? "-" : Model.MobileNo)</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-medium text-gray-500 uppercase">Limit</dt>
+                    <dd class="mt-1 text-sm text-gray-900 font-medium">@Model.Limit.ToString("N0")</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-medium text-gray-500 uppercase">Status</dt>
+                    <dd class="mt-1">
+                        @if (Model.Status == "Pending")
+                        {
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-50 text-warning-600">Pending</span>
+                        }
+                        else if (Model.Status == "Approved")
+                        {
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-50 text-success-700">Approved</span>
+                        }
+                        else
+                        {
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger-50 text-danger-700">@Model.Status</span>
+                        }
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-medium text-gray-500 uppercase">Created</dt>
+                    <dd class="mt-1 text-sm text-gray-900">@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss") UTC</dd>
+                </div>
+            </dl>
+        </div>
+    </div>
+
+    <!-- Audit Trail -->
+    <div class="lg:col-span-2">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Audit Trail</h2>
+                <p class="text-sm text-gray-500">All actions on this user (written via MediatR)</p>
+            </div>
+            <div class="divide-y divide-gray-100">
+                @if (!auditLogs.Any())
+                {
+                    <div class="px-6 py-10 text-center text-gray-500 text-sm">No audit records yet.</div>
+                }
+                @foreach (var log in auditLogs)
+                {
+                    <div class="px-6 py-4 hover:bg-gray-50 transition">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold
+                                        @(log.Action == "CREATE" ? "bg-blue-100 text-blue-800" :
+                                          log.Action == "UPDATE" ? "bg-indigo-100 text-indigo-800" :
+                                          log.Action == "APPROVE" ? "bg-green-100 text-green-800" :
+                                          log.Action == "REJECT" ? "bg-red-100 text-red-800" :
+                                          log.Action == "DELETE" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800")">
+                                        @log.Action
+                                    </span>
+                                    <span class="text-xs text-gray-500">@log.ActionDateTime.ToString("yyyy-MM-dd HH:mm:ss")</span>
+                                </div>
+                                <div class="mt-1 text-sm text-gray-700">
+                                    <span class="font-medium">@log.ActorUserId</span>
+                                    <span class="text-gray-400">(@log.ActorRole)</span>
+                                </div>
+                                <div class="mt-1 text-xs text-gray-500">
+                                    Target:
+                                    <span class="font-medium text-gray-700">@log.TargetDisplayName</span>
+                                    @if (!string.IsNullOrWhiteSpace(log.TargetUserMobileNo))
+                                    {
+                                        <span class="text-gray-400">/@log.TargetUserMobileNo</span>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrEmpty(log.Changes))
+                                {
+                                    <div class="mt-2 text-sm text-gray-600 bg-gray-50 rounded px-3 py-2 font-mono text-xs">
+                                        @log.Changes
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(log.Reason))
+                                {
+                                    <div class="mt-1 text-sm text-gray-500 italic">“@log.Reason”</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
