@@ -18,7 +18,7 @@ AuditLogSample/
 │   ├── Controllers/Features/
 │   │   ├── AuditLog/AuditLogController.cs
 │   │   └── Users/UserController.cs
-│   ├── Services/CurrentUser.cs
+│   ├── CurrentUser.cs
 │   ├── AuditLogSample.Api.http
 │   └── Program.cs
 ├── AuditLogSample.Domain/                # Feature slices, services, policies, MediatR audit handler
@@ -61,3 +61,11 @@ dotnet run --project AuditLogSample.Api
 - **Scalar API UI:** `http://localhost:62243/scalar/v1` (or `https://localhost:62242/scalar/v1`)
 - **OpenAPI JSON:** `http://localhost:62243/openapi/v1.json`
 - **HTTP Test File:** `AuditLogSample.Api/AuditLogSample.Api.http`
+
+## Screenshots (Scalar API UI)
+
+### Create User (`POST /api/users`)
+![Scalar UI - Create User](docs/images/scalar-create-user.jpg)
+
+### View Audit Logs (`GET /api/audit-logs`)
+![Scalar UI - Audit Logs](docs/images/scalar-audit-logs.jpg)
