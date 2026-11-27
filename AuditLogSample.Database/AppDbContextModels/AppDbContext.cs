@@ -2,8 +2,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AuditLogSample.Database.AppDbContextModels;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class AppDbContext : DbContext
 {
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    {
+    }
     public DbSet<TblUser> Users => Set<TblUser>();
 
     public DbSet<TblAuditLog> AuditLogs => Set<TblAuditLog>();
