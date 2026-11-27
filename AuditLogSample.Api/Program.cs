@@ -1,9 +1,9 @@
 using System.Text.Json.Serialization;
-using AuditLogSample.Api.Services;
+using AuditLogSample.Api;
 using AuditLogSample.Database.AppDbContextModels;
 using AuditLogSample.Domain;
 using AuditLogSample.Shared;
-using Scalar.AspNetCore;
+using Scalar.AspNetCore;    
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,13 +44,7 @@ app.UseStatusCodePages();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.MapScalarApiReference(options =>
-    {
-        options.WithTitle("AuditLogSample API");
-    });
-
-    app.MapGet("/", () => Results.Redirect("/scalar/v1"))
-        .ExcludeFromDescription();
+    app.MapScalarApiReference();
 }
 
 app.UseHttpsRedirection();
