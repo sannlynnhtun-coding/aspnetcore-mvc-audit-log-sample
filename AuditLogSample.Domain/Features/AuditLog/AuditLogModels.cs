@@ -11,9 +11,6 @@ public sealed record AuditTarget(
     string? Email,
     string? MobileNo);
 
-/// <summary>
-/// Represents an audit log entry returned by the API.
-/// </summary>
 public sealed record AuditLogResponse(
     string Id,
     string ActorUserId,

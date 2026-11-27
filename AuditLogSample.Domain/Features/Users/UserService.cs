@@ -1,4 +1,3 @@
-using System.Reflection;
 using AuditLogSample.Database.AppDbContextModels;
 using AuditLogSample.Domain.Features.AuditLog;
 using AuditLogSample.Shared;
@@ -7,48 +6,86 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AuditLogSample.Domain.Features.Users;
 
-public sealed class UserService(
-    AppDbContext dbContext,
-    IMediator mediator,
-    ICurrentUser currentUser,
-    IAuditService auditService,
-    UserValidationPolicy validationPolicy) : IUserService
+public sealed class UserService : IUserService
 {
-    public async Task<Result<IReadOnlyList<UserResponse>>> GetAllAsync(CancellationToken cancellationToken = default)
+    private readonly AppDbContext _dbContext;
+    private readonly IMediator _mediator;
+    private readonly ICurrentUser _currentUser;
+    private readonly IAuditService _auditService;
+    private readonly UserValidationPolicy _validationPolicy;
+
+    public UserService(
+        AppDbContext dbContext,
+        IMediator mediator,
+        ICurrentUser currentUser,
+        IAuditService auditService,
+        UserValidationPolicy validationPolicy)
     {
-        var users = await dbContext.Users
+        _dbContext = dbContext;
+        _mediator = mediator;
+        _currentUser = currentUser;
+        _auditService = auditService;
+        _validationPolicy = validationPolicy;
+    }
+
+    #region Get All Users
+    public async Task<Result<List<UserResponse>>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        var users = await _dbContext.Users
             .AsNoTracking()
-            .OrderByDescending(x => x.CreatedAt)
+            .OrderByDescending(u => u.CreatedAt)
+            .Select(u => new UserResponse
+            {
+                Id = u.Id,
+                Name = u.Name,
+                Email = u.Email,
+                MobileNo = u.MobileNo,
+                Limit = u.Limit,
+                Status = u.Status,
+                CreatedAt = new DateTimeOffset(DateTime.SpecifyKind(u.CreatedAt, DateTimeKind.Utc))
+            })
             .ToListAsync(cancellationToken);
 
-        IReadOnlyList<UserResponse> response = users.Select(MapToResponse).ToList();
-        return Result<IReadOnlyList<UserResponse>>.Success(response);
+        return Result<List<UserResponse>>.Success(users);
     }
+    #endregion
 
-    public async Task<Result<UserDetailResponse>> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+    #region Get User By Id
+    public async Task<Result<UserResponse>> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
-        var user = await dbContext.Users
+        var user = await _dbContext.Users
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
 
         if (user is null)
+            return Result<UserResponse>.Failure("User not found.");
+
+        var response = new UserResponse
         {
-            return Result<UserDetailResponse>.NotFound("User not found.");
-        }
-
-        var logs = await auditService.GetByTargetIdAsync(id, cancellationToken);
-        return Result<UserDetailResponse>.Success(new UserDetailResponse(MapToResponse(user), logs));
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email,
+            MobileNo = user.MobileNo,
+            Limit = user.Limit,
+            Status = user.Status,
+            CreatedAt = new DateTimeOffset(DateTime.SpecifyKind(user.CreatedAt, DateTimeKind.Utc)),
+        };
+        return Result<UserResponse>.Success(response);
     }
+    #endregion
 
+    #region Create User
     public async Task<Result<UserResponse>> CreateAsync(
         CreateUserRequest request,
         CancellationToken cancellationToken = default)
     {
-        var validation = await validationPolicy.ValidateCreateAsync(request, cancellationToken);
-        if (!validation.IsSuccess)
-        {
-            return MapFailure<UserResponse>(validation);
-        }
+        var validation = _validationPolicy.ValidateCreate(request);
+        if (validation.IsFailure)
+            return Result<UserResponse>.Failure(validation.Message);
+
+        var duplicateCheck = await CheckDuplicatesAsync(request.Email, request.MobileNo, excludeUserId: null, cancellationToken);
+        if (duplicateCheck.IsFailure)
+            return Result<UserResponse>.Failure(duplicateCheck.Message);
 
         var user = new TblUser
         {
@@ -61,234 +98,268 @@ public sealed class UserService(
             CreatedAt = DateTime.UtcNow
         };
 
-        // Stage entity in scoped AppDbContext; AuditEventHandler + IAuditService.LogAsync
-        // commits both TblUser and TblAuditLog atomically in a single SaveChangesAsync call.
-        dbContext.Users.Add(user);
+        _dbContext.Users.Add(user);
 
-        await mediator.Publish(
-            new AuditEvent(
-                Action: "CREATE",
-                ResourceType: "User",
-                TargetId: user.Id,
-                TargetUserId: user.Id,
-                ActorUserId: currentUser.UserId,
-                ActorRole: currentUser.Role,
-                Reason: request.Reason,
-                NewStatus: "Pending",
-                TargetLookupKey: user.MobileNo ?? user.Id),
-            cancellationToken);
+        await _mediator.Publish(new AuditEvent(
+            Action: "CREATE",
+            ResourceType: "User",
+            TargetId: user.Id,
+            TargetUserId: user.Id,
+            ActorUserId: _currentUser.UserId,
+            ActorRole: _currentUser.Role,
+            Reason: request.Reason,
+            NewStatus: "Pending",
+            TargetLookupKey: user.MobileNo ?? user.Id
+        ), cancellationToken);
 
-        return Result<UserResponse>.Success(MapToResponse(user), "User created successfully (Pending approval).");
+        var response = new UserResponse
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email,
+            MobileNo = user.MobileNo,
+            Limit = user.Limit,
+            Status = user.Status,
+            CreatedAt = new DateTimeOffset(DateTime.SpecifyKind(user.CreatedAt, DateTimeKind.Utc))
+        };
+        return Result<UserResponse>.Success(response, "User created successfully (Pending approval).");
     }
+    #endregion
 
+    #region Update User
     public async Task<Result<UserResponse>> UpdateAsync(
         string id,
         UpdateUserRequest request,
         CancellationToken cancellationToken = default)
     {
-        var user = await dbContext.Users.FindAsync([id], cancellationToken);
+        var validation = _validationPolicy.ValidateUpdate(request);
+        if (validation.IsFailure)
+            return Result<UserResponse>.Failure(validation.Message);
+
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
         if (user is null)
-        {
-            return Result<UserResponse>.NotFound("User not found.");
-        }
+            return Result<UserResponse>.Failure("User not found.");
 
-        var validation = await validationPolicy.ValidateUpdateAsync(id, request, cancellationToken);
-        if (!validation.IsSuccess)
-        {
-            return MapFailure<UserResponse>(validation);
-        }
+        var duplicateCheck = await CheckDuplicatesAsync(request.Email, request.MobileNo, excludeUserId: id, cancellationToken);
+        if (duplicateCheck.IsFailure)
+            return Result<UserResponse>.Failure(duplicateCheck.Message);
 
-        var dto = new
-        {
-            Name = request.Name.Trim(),
-            Email = request.Email.Trim(),
-            MobileNo = string.IsNullOrWhiteSpace(request.MobileNo) ? null : request.MobileNo.Trim(),
-            request.Limit
-        };
-
-        var changes = TrackChanges(user, dto);
+        var changes = CollectChanges(user, request);
         if (changes.Count == 0)
         {
-            return Result<UserResponse>.Success(MapToResponse(user), "No changes detected.");
+            var unchangedResponse = new UserResponse
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Email = user.Email,
+                MobileNo = user.MobileNo,
+                Limit = user.Limit,
+                Status = user.Status,
+                CreatedAt = new DateTimeOffset(DateTime.SpecifyKind(user.CreatedAt, DateTimeKind.Utc))
+            };
+            return Result<UserResponse>.Success(unchangedResponse, "No changes detected.");
         }
 
-        await mediator.Publish(
-            new AuditEvent(
-                Action: "UPDATE",
-                ResourceType: "User",
-                TargetId: user.Id,
-                TargetUserId: user.Id,
-                ActorUserId: currentUser.UserId,
-                ActorRole: currentUser.Role,
-                Reason: request.Reason,
-                Changes: changes,
-                TargetLookupKey: user.MobileNo ?? user.Id),
-            cancellationToken);
+        user.Name = request.Name.Trim();
+        user.Email = request.Email.Trim();
+        user.MobileNo = string.IsNullOrWhiteSpace(request.MobileNo) ? null : request.MobileNo.Trim();
+        user.Limit = request.Limit;
 
-        return Result<UserResponse>.Success(MapToResponse(user), "User updated successfully.");
+        await _mediator.Publish(new AuditEvent(
+            Action: "UPDATE",
+            ResourceType: "User",
+            TargetId: user.Id,
+            TargetUserId: user.Id,
+            ActorUserId: _currentUser.UserId,
+            ActorRole: _currentUser.Role,
+            Reason: request.Reason,
+            Changes: changes,
+            TargetLookupKey: user.MobileNo ?? user.Id
+        ), cancellationToken);
+
+        var response = new UserResponse
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email,
+            MobileNo = user.MobileNo,
+            Limit = user.Limit,
+            Status = user.Status,
+            CreatedAt = new DateTimeOffset(DateTime.SpecifyKind(user.CreatedAt, DateTimeKind.Utc))
+        };
+        return Result<UserResponse>.Success(response, "User updated successfully.");
     }
+    #endregion
 
+    #region Delete User
     public async Task<Result> DeleteAsync(
         string id,
         string? reason = null,
         CancellationToken cancellationToken = default)
     {
-        var user = await dbContext.Users.FindAsync([id], cancellationToken);
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
         if (user is null)
-        {
-            return Result.NotFound("User not found.");
-        }
+            return Result.Failure("User not found.");
 
-        dbContext.Users.Remove(user);
+        _dbContext.Users.Remove(user);
 
-        await mediator.Publish(
-            new AuditEvent(
-                Action: "DELETE",
-                ResourceType: "User",
-                TargetId: id,
-                TargetUserId: id,
-                ActorUserId: currentUser.UserId,
-                ActorRole: currentUser.Role,
-                Reason: reason,
-                TargetLookupKey: user.MobileNo ?? id),
-            cancellationToken);
+        await _mediator.Publish(new AuditEvent(
+            Action: "DELETE",
+            ResourceType: "User",
+            TargetId: id,
+            TargetUserId: id,
+            ActorUserId: _currentUser.UserId,
+            ActorRole: _currentUser.Role,
+            Reason: reason,
+            TargetLookupKey: user.MobileNo ?? id
+        ), cancellationToken);
 
         return Result.Success("User deleted successfully.");
     }
+    #endregion
 
+    #region Approve User
     public async Task<Result<UserResponse>> ApproveAsync(
         string id,
         string? reason = null,
         CancellationToken cancellationToken = default)
     {
-        var user = await dbContext.Users.FindAsync([id], cancellationToken);
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
         if (user is null)
-        {
-            return Result<UserResponse>.NotFound("User not found.");
-        }
+            return Result<UserResponse>.Failure("User not found.");
 
-        var transition = validationPolicy.ValidateStatusTransition(user, "Approved");
-        if (!transition.IsSuccess)
-        {
-            return MapFailure<UserResponse>(transition);
-        }
+        var transition = _validationPolicy.ValidateStatusTransition(user, "Approved");
+        if (transition.IsFailure)
+            return Result<UserResponse>.Failure(transition.Message);
 
         var oldStatus = user.Status;
         user.Status = "Approved";
 
-        await mediator.Publish(
-            new AuditEvent(
-                Action: "APPROVE",
-                ResourceType: "User",
-                TargetId: id,
-                TargetUserId: id,
-                ActorUserId: currentUser.UserId,
-                ActorRole: currentUser.Role,
-                Reason: reason,
-                OldStatus: oldStatus,
-                NewStatus: "Approved",
-                TargetLookupKey: user.MobileNo ?? id),
-            cancellationToken);
+        await _mediator.Publish(new AuditEvent(
+            Action: "APPROVE",
+            ResourceType: "User",
+            TargetId: id,
+            TargetUserId: id,
+            ActorUserId: _currentUser.UserId,
+            ActorRole: _currentUser.Role,
+            Reason: reason,
+            OldStatus: oldStatus,
+            NewStatus: "Approved",
+            TargetLookupKey: user.MobileNo ?? id
+        ), cancellationToken);
 
-        return Result<UserResponse>.Success(MapToResponse(user), "User approved successfully.");
+        var response = new UserResponse
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email,
+            MobileNo = user.MobileNo,
+            Limit = user.Limit,
+            Status = user.Status,
+            CreatedAt = new DateTimeOffset(DateTime.SpecifyKind(user.CreatedAt, DateTimeKind.Utc))
+        };
+        return Result<UserResponse>.Success(response, "User approved successfully.");
     }
+    #endregion
 
+    #region Reject User
     public async Task<Result<UserResponse>> RejectAsync(
         string id,
         string? reason = null,
         CancellationToken cancellationToken = default)
     {
-        var user = await dbContext.Users.FindAsync([id], cancellationToken);
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
         if (user is null)
-        {
-            return Result<UserResponse>.NotFound("User not found.");
-        }
+            return Result<UserResponse>.Failure("User not found.");
 
-        var transition = validationPolicy.ValidateStatusTransition(user, "Rejected");
-        if (!transition.IsSuccess)
-        {
-            return MapFailure<UserResponse>(transition);
-        }
+        var transition = _validationPolicy.ValidateStatusTransition(user, "Rejected");
+        if (transition.IsFailure)
+            return Result<UserResponse>.Failure(transition.Message);
 
         var oldStatus = user.Status;
         user.Status = "Rejected";
 
-        await mediator.Publish(
-            new AuditEvent(
-                Action: "REJECT",
-                ResourceType: "User",
-                TargetId: id,
-                TargetUserId: id,
-                ActorUserId: currentUser.UserId,
-                ActorRole: currentUser.Role,
-                Reason: reason,
-                OldStatus: oldStatus,
-                NewStatus: "Rejected",
-                TargetLookupKey: user.MobileNo ?? id),
-            cancellationToken);
+        await _mediator.Publish(new AuditEvent(
+            Action: "REJECT",
+            ResourceType: "User",
+            TargetId: id,
+            TargetUserId: id,
+            ActorUserId: _currentUser.UserId,
+            ActorRole: _currentUser.Role,
+            Reason: reason,
+            OldStatus: oldStatus,
+            NewStatus: "Rejected",
+            TargetLookupKey: user.MobileNo ?? id
+        ), cancellationToken);
 
-        return Result<UserResponse>.Success(MapToResponse(user), "User rejected successfully.");
-    }
-
-    private static UserResponse MapToResponse(TblUser user) =>
-        new(
-            user.Id,
-            user.Name,
-            user.Email,
-            user.MobileNo,
-            user.Limit,
-            user.Status,
-            new DateTimeOffset(DateTime.SpecifyKind(user.CreatedAt, DateTimeKind.Utc)));
-
-    private static Result<T> MapFailure<T>(Result failure) =>
-        failure.ErrorType switch
+        var response = new UserResponse
         {
-            ErrorType.NotFound => Result<T>.NotFound(failure.Message),
-            ErrorType.Conflict => Result<T>.Conflict(failure.Message),
-            _ => Result<T>.ValidationError(failure.Message, failure.Errors)
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email,
+            MobileNo = user.MobileNo,
+            Limit = user.Limit,
+            Status = user.Status,
+            CreatedAt = new DateTimeOffset(DateTime.SpecifyKind(user.CreatedAt, DateTimeKind.Utc))
         };
+        return Result<UserResponse>.Success(response, "User rejected successfully.");
+    }
+    #endregion
 
-    private static List<ChangeRecord> TrackChanges<T1, T2>(T1 obj1, T2 obj2, bool isTrackAll = false)
-        where T1 : class
-        where T2 : class
+    private async Task<Result> CheckDuplicatesAsync(
+        string email,
+        string? mobileNo,
+        string? excludeUserId,
+        CancellationToken cancellationToken)
     {
-        var changeLog = new List<ChangeRecord>();
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var emailExists = await _dbContext.Users
+            .AsNoTracking()
+            .AnyAsync(
+                u => (excludeUserId == null || u.Id != excludeUserId) &&
+                     u.Email.ToLower() == normalizedEmail,
+                cancellationToken);
 
-        var properties1 = typeof(T1).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        if (emailExists)
+            return Result.Failure($"A user with email '{email.Trim()}' already exists.");
 
-        foreach (var property1 in properties1)
+        if (!string.IsNullOrWhiteSpace(mobileNo))
         {
-            if (!property1.CanWrite)
-            {
-                continue;
-            }
+            var normalizedMobile = mobileNo.Trim().ToLowerInvariant();
+            var mobileExists = await _dbContext.Users
+                .AsNoTracking()
+                .AnyAsync(
+                    u => (excludeUserId == null || u.Id != excludeUserId) &&
+                         u.MobileNo != null &&
+                         u.MobileNo.ToLower() == normalizedMobile,
+                    cancellationToken);
 
-            var property2 = typeof(T2).GetProperty(property1.Name, BindingFlags.Public | BindingFlags.Instance);
-            if (property2 is null || !property2.CanRead)
-            {
-                continue;
-            }
-
-            var oldValue = property1.GetValue(obj1);
-            var newValue = property2.GetValue(obj2);
-
-            if (isTrackAll)
-            {
-                changeLog.Add(new ChangeRecord(property1.Name, oldValue, newValue));
-                property1.SetValue(obj1, newValue);
-            }
-            else if (oldValue?.ToString() != newValue?.ToString())
-            {
-                if (newValue is null && oldValue is null)
-                {
-                    continue;
-                }
-
-                changeLog.Add(new ChangeRecord(property1.Name, oldValue, newValue));
-                property1.SetValue(obj1, newValue);
-            }
+            if (mobileExists)
+                return Result.Failure($"A user with mobile number '{mobileNo.Trim()}' already exists.");
         }
 
-        return changeLog;
+        return Result.Success();
+    }
+
+    private static List<ChangeRecord> CollectChanges(TblUser existing, UpdateUserRequest updated)
+    {
+        var changes = new List<ChangeRecord>();
+
+        var name = updated.Name.Trim();
+        if (existing.Name != name)
+            changes.Add(new("Name", existing.Name, name));
+
+        var email = updated.Email.Trim();
+        if (existing.Email != email)
+            changes.Add(new("Email", existing.Email, email));
+
+        var mobileNo = string.IsNullOrWhiteSpace(updated.MobileNo) ? null : updated.MobileNo.Trim();
+        if (existing.MobileNo != mobileNo)
+            changes.Add(new("MobileNo", existing.MobileNo, mobileNo));
+
+        if (existing.Limit != updated.Limit)
+            changes.Add(new("Limit", existing.Limit.ToString(), updated.Limit.ToString()));
+
+        return changes;
     }
 }

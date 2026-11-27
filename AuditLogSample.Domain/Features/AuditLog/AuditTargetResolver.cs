@@ -3,15 +3,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AuditLogSample.Domain.Features.AuditLog;
 
-public sealed class AuditTargetResolver(AppDbContext dbContext) : IAuditTargetResolver
+public sealed class AuditTargetResolver : IAuditTargetResolver
 {
+    private readonly AppDbContext _dbContext;
+
+    public AuditTargetResolver(AppDbContext dbContext)
+    {
+        _dbContext = dbContext;
+    }
+
     public async Task<AuditTarget?> ResolveUserAsync(CancellationToken cancellationToken, params string?[] lookupKeys)
     {
         foreach (var lookupKey in lookupKeys.Select(Normalize).Where(key => key is not null))
         {
             var user = FindTrackedUser(lookupKey!);
 
-            user ??= await dbContext.Users
+            user ??= await _dbContext.Users
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
                     candidate =>
@@ -31,7 +38,7 @@ public sealed class AuditTargetResolver(AppDbContext dbContext) : IAuditTargetRe
 
     private TblUser? FindTrackedUser(string lookupKey)
     {
-        return dbContext.ChangeTracker
+        return _dbContext.ChangeTracker
             .Entries<TblUser>()
             .Where(entry => entry.State != EntityState.Detached)
             .Select(entry => entry.Entity)

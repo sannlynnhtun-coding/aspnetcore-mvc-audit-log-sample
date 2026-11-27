@@ -6,43 +6,43 @@ namespace AuditLogSample.Domain.Features.Users;
 /// <summary>
 /// Payload for creating a new user (Pending approval).
 /// </summary>
-public sealed record CreateUserRequest
+public class CreateUserRequest
 {
     [Required, StringLength(100)]
-    public required string Name { get; init; }
+    public required string Name { get; set; }
 
     [Required, EmailAddress, StringLength(256)]
-    public required string Email { get; init; }
+    public required string Email { get; set; }
 
     [Phone, StringLength(32)]
-    public string? MobileNo { get; init; }
+    public string? MobileNo { get; set; }
 
     [Range(0, 10_000_000)]
-    public decimal Limit { get; init; }
+    public decimal Limit { get; set; }
 
     [StringLength(500)]
-    public string? Reason { get; init; }
+    public string? Reason { get; set; }
 }
 
 /// <summary>
 /// Payload for updating an existing user.
 /// </summary>
-public sealed record UpdateUserRequest
+public class UpdateUserRequest
 {
     [Required, StringLength(100)]
-    public required string Name { get; init; }
+    public required string Name { get; set; }
 
     [Required, EmailAddress, StringLength(256)]
-    public required string Email { get; init; }
+    public required string Email { get; set; }
 
     [Phone, StringLength(32)]
-    public string? MobileNo { get; init; }
+    public string? MobileNo { get; set; }
 
     [Range(0, 10_000_000)]
-    public decimal Limit { get; init; }
+    public decimal Limit { get; set; }
 
     [StringLength(500)]
-    public string? Reason { get; init; }
+    public string? Reason { get; set; }
 }
 
 /// <summary>
@@ -57,18 +57,14 @@ public sealed record UserActionRequest
 /// <summary>
 /// Represents a user returned by the API.
 /// </summary>
-public sealed record UserResponse(
-    string Id,
-    string Name,
-    string Email,
-    string? MobileNo,
-    decimal Limit,
-    string Status,
-    DateTimeOffset CreatedAt);
-
-/// <summary>
-/// Represents a user together with their audit trail.
-/// </summary>
-public sealed record UserDetailResponse(
-    UserResponse User,
-    IReadOnlyList<AuditLogResponse> AuditLogs);
+public sealed record UserResponse
+{
+    public string Id { get; init; } = string.Empty;
+    public string Name { get; init; } = string.Empty;
+    public string Email { get; init; } = string.Empty;
+    public string? MobileNo { get; init; } = string.Empty;
+    public decimal Limit { get; init; }
+    public string Status { get; init; } = string.Empty;
+    public DateTimeOffset CreatedAt { get; init; }
+    public List<AuditLogResponse>? AuditLogs { get; init; }
+}

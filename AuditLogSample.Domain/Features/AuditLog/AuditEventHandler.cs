@@ -3,10 +3,19 @@ using MediatR;
 
 namespace AuditLogSample.Domain.Features.AuditLog;
 
-public sealed class AuditEventHandler(
-    IAuditService auditService,
-    IAuditTargetResolver auditTargetResolver) : INotificationHandler<AuditEvent>
+public sealed class AuditEventHandler : INotificationHandler<AuditEvent>
 {
+    private readonly IAuditService _auditService;
+    private readonly IAuditTargetResolver _auditTargetResolver;
+
+    public AuditEventHandler(
+        IAuditService auditService,
+        IAuditTargetResolver auditTargetResolver)
+    {
+        _auditService = auditService;
+        _auditTargetResolver = auditTargetResolver;
+    }
+
     public async Task Handle(AuditEvent notification, CancellationToken cancellationToken)
     {
         var changesText = notification.Changes?.Count > 0
@@ -22,7 +31,7 @@ public sealed class AuditEventHandler(
                 : $"{changesText} | {statusChange}";
         }
 
-        var target = await auditTargetResolver.ResolveUserAsync(
+        var target = await _auditTargetResolver.ResolveUserAsync(
             cancellationToken,
             notification.TargetLookupKey,
             notification.TargetUserId,
@@ -44,6 +53,6 @@ public sealed class AuditEventHandler(
             ActionDateTime = DateTime.UtcNow
         };
 
-        await auditService.LogAsync(log, cancellationToken);
+        await _auditService.LogAsync(log, cancellationToken);
     }
 }

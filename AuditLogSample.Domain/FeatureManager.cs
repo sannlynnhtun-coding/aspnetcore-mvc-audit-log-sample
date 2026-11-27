@@ -4,14 +4,14 @@ using AuditLogSample.Domain.Features.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Builder;
 
 namespace AuditLogSample.Domain;
 
 public static class FeatureManager
 {
-    public static IHostApplicationBuilder AddDomain(
-        this IHostApplicationBuilder builder,
+    public static void AddDomain(
+        this WebApplicationBuilder builder,
         string? fallbackConnectionString = null)
     {
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -21,7 +21,7 @@ public static class FeatureManager
         builder.Services.AddDbContext<AppDbContext>(options =>
             options.UseSqlite(connectionString));
 
-        // MediatR - used strictly for publishing and handling AuditEvent
+        // MediatR - for publishing and handling AuditEvent
         builder.Services.AddMediatR(cfg =>
             cfg.RegisterServicesFromAssembly(typeof(FeatureManager).Assembly));
 
@@ -33,6 +33,5 @@ public static class FeatureManager
         builder.Services.AddScoped<UserValidationPolicy>();
         builder.Services.AddScoped<IUserService, UserService>();
 
-        return builder;
     }
 }

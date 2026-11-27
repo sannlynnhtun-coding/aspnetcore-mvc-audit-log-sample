@@ -3,29 +3,59 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AuditLogSample.Domain.Features.AuditLog;
 
-public sealed class AuditLogService(AppDbContext dbContext) : IAuditService
+public sealed class AuditLogService : IAuditService
 {
-    public async Task LogAsync(TblAuditLog log, CancellationToken cancellationToken = default)
+    private readonly AppDbContext _dbContext;
+
+    public AuditLogService(AppDbContext dbContext)
     {
-        dbContext.AuditLogs.Add(log);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        _dbContext = dbContext;
     }
 
-    public async Task<IReadOnlyList<AuditLogResponse>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task LogAsync(TblAuditLog log, CancellationToken cancellationToken = default)
     {
-        var logs = await dbContext.AuditLogs
+        _dbContext.AuditLogs.Add(log);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<List<AuditLogResponse>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        var logs = await _dbContext.AuditLogs
             .AsNoTracking()
             .OrderByDescending(x => x.ActionDateTime)
             .ToListAsync(cancellationToken);
 
-        return logs.Select(MapToResponse).ToList();
+        return logs.Select(log =>
+        {
+            var displayName = !string.IsNullOrWhiteSpace(log.TargetUserName)
+                ? (string.IsNullOrWhiteSpace(log.TargetUserId)
+                    ? log.TargetUserName
+                    : $"{log.TargetUserName} ({log.TargetUserId})")
+                : log.TargetUserId ?? log.TargetLookupKey ?? log.TargetId;
+
+            return new AuditLogResponse(
+                log.Id,
+                log.ActorUserId,
+                log.ActorRole,
+                log.Action,
+                log.ResourceType,
+                log.TargetId,
+                log.TargetLookupKey,
+                log.TargetUserId,
+                log.TargetUserName,
+                log.TargetUserMobileNo,
+                displayName,
+                log.Changes,
+                log.Reason,
+                new DateTimeOffset(DateTime.SpecifyKind(log.ActionDateTime, DateTimeKind.Utc)));
+        }).ToList();
     }
 
-    public async Task<IReadOnlyList<AuditLogResponse>> GetByTargetIdAsync(
+    public async Task<List<AuditLogResponse>> GetByTargetIdAsync(
         string targetId,
         CancellationToken cancellationToken = default)
     {
-        var logs = await dbContext.AuditLogs
+        var logs = await _dbContext.AuditLogs
             .AsNoTracking()
             .Where(x =>
                 x.TargetId == targetId ||
@@ -34,31 +64,29 @@ public sealed class AuditLogService(AppDbContext dbContext) : IAuditService
             .OrderByDescending(x => x.ActionDateTime)
             .ToListAsync(cancellationToken);
 
-        return logs.Select(MapToResponse).ToList();
-    }
+        return logs.Select(log =>
+        {
+            var displayName = !string.IsNullOrWhiteSpace(log.TargetUserName)
+                ? (string.IsNullOrWhiteSpace(log.TargetUserId)
+                    ? log.TargetUserName
+                    : $"{log.TargetUserName} ({log.TargetUserId})")
+                : log.TargetUserId ?? log.TargetLookupKey ?? log.TargetId;
 
-    private static AuditLogResponse MapToResponse(TblAuditLog log)
-    {
-        var displayName = !string.IsNullOrWhiteSpace(log.TargetUserName)
-            ? (string.IsNullOrWhiteSpace(log.TargetUserId)
-                ? log.TargetUserName
-                : $"{log.TargetUserName} ({log.TargetUserId})")
-            : log.TargetUserId ?? log.TargetLookupKey ?? log.TargetId;
-
-        return new AuditLogResponse(
-            log.Id,
-            log.ActorUserId,
-            log.ActorRole,
-            log.Action,
-            log.ResourceType,
-            log.TargetId,
-            log.TargetLookupKey,
-            log.TargetUserId,
-            log.TargetUserName,
-            log.TargetUserMobileNo,
-            displayName,
-            log.Changes,
-            log.Reason,
-            new DateTimeOffset(DateTime.SpecifyKind(log.ActionDateTime, DateTimeKind.Utc)));
+            return new AuditLogResponse(
+                log.Id,
+                log.ActorUserId,
+                log.ActorRole,
+                log.Action,
+                log.ResourceType,
+                log.TargetId,
+                log.TargetLookupKey,
+                log.TargetUserId,
+                log.TargetUserName,
+                log.TargetUserMobileNo,
+                displayName,
+                log.Changes,
+                log.Reason,
+                new DateTimeOffset(DateTime.SpecifyKind(log.ActionDateTime, DateTimeKind.Utc)));
+        }).ToList();
     }
 }
