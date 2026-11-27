@@ -1,0 +1,70 @@
+@baseUrl = http://localhost:62243
+
+### Get all users
+GET {{baseUrl}}/api/users
+Accept: application/json
+
+### Get user by ID (with audit trail)
+GET {{baseUrl}}/api/users/user-001
+Accept: application/json
+
+### Create a new user (uses custom X-User-Id / X-User-Role headers)
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+X-User-Id: maker-101
+X-User-Role: Maker
+
+{
+  "name": "Mg Mg",
+  "email": "mgmg@bank.com",
+  "mobileNo": "09987654321",
+  "limit": 250000,
+  "reason": "New corporate customer onboarding"
+}
+
+### Update user (replace {id} with created user ID)
+PUT {{baseUrl}}/api/users/user-001
+Content-Type: application/json
+X-User-Id: maker-101
+X-User-Role: Maker
+
+{
+  "name": "Alice Wong",
+  "email": "alice@bank.com",
+  "mobileNo": "09123456789",
+  "limit": 150000,
+  "reason": "Annual limit increase"
+}
+
+### Approve user (falls back to maker-001 / Admin when headers omitted)
+POST {{baseUrl}}/api/users/user-001/approve
+Content-Type: application/json
+X-User-Id: checker-001
+X-User-Role: Checker
+
+{
+  "reason": "KYC verified"
+}
+
+### Reject user
+POST {{baseUrl}}/api/users/user-001/reject
+Content-Type: application/json
+X-User-Id: checker-001
+X-User-Role: Checker
+
+{
+  "reason": "Incomplete documentation"
+}
+
+### Delete user
+DELETE {{baseUrl}}/api/users/user-001?reason=Account%20closed%20by%20request
+X-User-Id: admin-001
+X-User-Role: Admin
+
+### Get all audit logs
+GET {{baseUrl}}/api/audit-logs
+Accept: application/json
+
+### Get audit logs by target ID / lookup key
+GET {{baseUrl}}/api/audit-logs/target/user-001
+Accept: application/json
