@@ -1,46 +1,34 @@
-namespace AuditLogSample.Shared;
+using System.Text.Json.Serialization;
 
-public enum ErrorType
-{
-    None = 0,
-    Validation = 400,
-    NotFound = 404,
-    Conflict = 409
-}
+namespace AuditLogSample.Shared;
 
 public class Result
 {
     public bool IsSuccess { get; init; }
-    public string Message { get; init; } = string.Empty;
-    public ErrorType ErrorType { get; init; } = ErrorType.None;
-    public IReadOnlyList<string> Errors { get; init; } = [];
+    public string Message { get; init; }
+    public bool IsFailure => !IsSuccess;
 
-    public static Result Success(string message = "Success") =>
-        new() { IsSuccess = true, Message = message };
+    [JsonConstructor]
+    public Result(bool isSuccess, string message)
+    {
+        IsSuccess = isSuccess;
+        Message = message;
+    }
 
-    public static Result ValidationError(string message, IReadOnlyList<string>? errors = null) =>
-        new() { IsSuccess = false, Message = message, ErrorType = ErrorType.Validation, Errors = errors ?? [message] };
-
-    public static Result NotFound(string message) =>
-        new() { IsSuccess = false, Message = message, ErrorType = ErrorType.NotFound, Errors = [message] };
-
-    public static Result Conflict(string message) =>
-        new() { IsSuccess = false, Message = message, ErrorType = ErrorType.Conflict, Errors = [message] };
+    public static Result Success(string message = "Success") => new(true, message);
+    public static Result Failure(string message) => new(false, message);
 }
 
-public sealed class Result<T> : Result
+public class Result<T> : Result
 {
     public T? Data { get; init; }
 
-    public static Result<T> Success(T data, string message = "Success") =>
-        new() { IsSuccess = true, Data = data, Message = message };
+    [JsonConstructor]
+    public Result(bool isSuccess, string message, T? data) : base(isSuccess, message)
+    {
+        Data = data;
+    }
 
-    public new static Result<T> ValidationError(string message, IReadOnlyList<string>? errors = null) =>
-        new() { IsSuccess = false, Message = message, ErrorType = ErrorType.Validation, Errors = errors ?? [message] };
-
-    public new static Result<T> NotFound(string message) =>
-        new() { IsSuccess = false, Message = message, ErrorType = ErrorType.NotFound, Errors = [message] };
-
-    public new static Result<T> Conflict(string message) =>
-        new() { IsSuccess = false, Message = message, ErrorType = ErrorType.Conflict, Errors = [message] };
+    public static Result<T> Success(T data, string message = "Success") => new(true, message, data);
+    public new static Result<T> Failure(string message) => new(false, message, default);
 }
