@@ -18,8 +18,8 @@ public sealed class AuditLogController : ControllerBase
     [ProducesResponseType<Result<List<AuditLogResponse>>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
-        var logs = await _auditService.GetAllAsync(cancellationToken);
-        return Ok(Result<List<AuditLogResponse>>.Success(logs));
+        var auditLogsResult = await _auditService.GetAllAsync(cancellationToken);
+        return this.ToActionResult(auditLogsResult);
     }
 
     /// <summary>
@@ -29,7 +29,7 @@ public sealed class AuditLogController : ControllerBase
     [ProducesResponseType<Result<List<AuditLogResponse>>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByTargetId(string targetId, CancellationToken cancellationToken)
     {
-        var logs = await _auditService.GetByTargetIdAsync(targetId, cancellationToken);
-        return Ok(Result<List<AuditLogResponse>>.Success(logs));
+        var auditLogsResult = await _auditService.GetByTargetIdAsync(targetId, cancellationToken);
+        return this.ToActionResult(auditLogsResult);
     }
 }

@@ -15,14 +15,14 @@ public sealed class AuditLogService : IAuditService
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<List<AuditLogResponse>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<List<AuditLogResponse>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var logs = await _dbContext.AuditLogs
             .AsNoTracking()
             .OrderByDescending(x => x.ActionDateTime)
             .ToListAsync(cancellationToken);
 
-        return logs.Select(log =>
+        var auditLogs = logs.Select(log =>
         {
             var displayName = !string.IsNullOrWhiteSpace(log.TargetUserName)
                 ? (string.IsNullOrWhiteSpace(log.TargetUserId)
@@ -46,9 +46,11 @@ public sealed class AuditLogService : IAuditService
                 log.Reason,
                 new DateTimeOffset(DateTime.SpecifyKind(log.ActionDateTime, DateTimeKind.Utc)));
         }).ToList();
+
+        return Result<List<AuditLogResponse>>.Success(auditLogs);
     }
 
-    public async Task<List<AuditLogResponse>> GetByTargetIdAsync(
+    public async Task<Result<List<AuditLogResponse>>> GetByTargetIdAsync(
         string targetId,
         CancellationToken cancellationToken = default)
     {
@@ -61,7 +63,7 @@ public sealed class AuditLogService : IAuditService
             .OrderByDescending(x => x.ActionDateTime)
             .ToListAsync(cancellationToken);
 
-        return logs.Select(log =>
+        var auditLogs = logs.Select(log =>
         {
             var displayName = !string.IsNullOrWhiteSpace(log.TargetUserName)
                 ? (string.IsNullOrWhiteSpace(log.TargetUserId)
@@ -85,5 +87,7 @@ public sealed class AuditLogService : IAuditService
                 log.Reason,
                 new DateTimeOffset(DateTime.SpecifyKind(log.ActionDateTime, DateTimeKind.Utc)));
         }).ToList();
+
+        return Result<List<AuditLogResponse>>.Success(auditLogs);
     }
 }
