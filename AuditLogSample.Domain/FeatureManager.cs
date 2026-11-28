@@ -1,11 +1,3 @@
-using AuditLogSample.Database.AppDbContextModels;
-using AuditLogSample.Domain.Features.AuditLog;
-using AuditLogSample.Domain.Features.Users;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Builder;
-
 namespace AuditLogSample.Domain;
 
 public static class FeatureManager
@@ -21,12 +13,12 @@ public static class FeatureManager
         builder.Services.AddDbContext<AppDbContext>(options =>
             options.UseSqlite(connectionString));
 
-        // MediatR - for publishing and handling AuditEvent
+        // MediatR - for publishing and handling AuditLogEventRequest
         builder.Services.AddMediatR(cfg =>
             cfg.RegisterServicesFromAssembly(typeof(FeatureManager).Assembly));
 
         // AuditLog feature
-        builder.Services.AddScoped<IFindAffectedUser, FindAffectedUser>();
+        builder.Services.AddScoped<IAuditLogDbService, AuditLogDbService>();
         builder.Services.AddScoped<IAuditService, AuditLogService>();
 
         // Users feature

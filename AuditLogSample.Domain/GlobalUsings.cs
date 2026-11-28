@@ -1,0 +1,12 @@
+global using AuditLogSample.Database.AppDbContextModels;
+global using AuditLogSample.Domain.Events.AuditLogEvent.Dtos;
+global using AuditLogSample.Domain.Events.AuditLogEvent.Tasks;
+global using AuditLogSample.Domain.Features.AuditLog;
+global using AuditLogSample.Domain.Features.Users;
+global using AuditLogSample.Shared;
+global using MediatR;
+global using Microsoft.AspNetCore.Builder;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.DependencyInjection;
+global using System.ComponentModel.DataAnnotations;

@@ -1,9 +1,3 @@
-using AuditLogSample.Database.AppDbContextModels;
-using AuditLogSample.Domain.Features.AuditLog;
-using AuditLogSample.Shared;
-using MediatR;
-using Microsoft.EntityFrameworkCore;
-
 namespace AuditLogSample.Domain.Features.Users;
 
 public sealed class UserService : IUserService
@@ -100,7 +94,7 @@ public sealed class UserService : IUserService
 
         _dbContext.Users.Add(user);
 
-        await _mediator.Publish(new AuditEvent(
+        await _mediator.Publish(new AuditLogEventRequest(
             Action: "CREATE",
             ResourceType: "User",
             TargetId: user.Id,
@@ -165,7 +159,7 @@ public sealed class UserService : IUserService
         user.MobileNo = string.IsNullOrWhiteSpace(request.MobileNo) ? null : request.MobileNo.Trim();
         user.Limit = request.Limit;
 
-        await _mediator.Publish(new AuditEvent(
+        await _mediator.Publish(new AuditLogEventRequest(
             Action: "UPDATE",
             ResourceType: "User",
             TargetId: user.Id,
@@ -203,7 +197,7 @@ public sealed class UserService : IUserService
 
         _dbContext.Users.Remove(user);
 
-        await _mediator.Publish(new AuditEvent(
+        await _mediator.Publish(new AuditLogEventRequest(
             Action: "DELETE",
             ResourceType: "User",
             TargetId: id,
@@ -235,7 +229,7 @@ public sealed class UserService : IUserService
         var oldStatus = user.Status;
         user.Status = "Approved";
 
-        await _mediator.Publish(new AuditEvent(
+        await _mediator.Publish(new AuditLogEventRequest(
             Action: "APPROVE",
             ResourceType: "User",
             TargetId: id,
@@ -279,7 +273,7 @@ public sealed class UserService : IUserService
         var oldStatus = user.Status;
         user.Status = "Rejected";
 
-        await _mediator.Publish(new AuditEvent(
+        await _mediator.Publish(new AuditLogEventRequest(
             Action: "REJECT",
             ResourceType: "User",
             TargetId: id,

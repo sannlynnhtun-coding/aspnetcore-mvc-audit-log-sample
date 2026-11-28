@@ -1,5 +1,3 @@
-using AuditLogSample.Shared;
-
 namespace AuditLogSample.Domain.Features.Users;
 
 public interface IUserService

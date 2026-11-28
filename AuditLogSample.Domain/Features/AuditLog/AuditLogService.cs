@@ -1,6 +1,3 @@
-using AuditLogSample.Database.AppDbContextModels;
-using Microsoft.EntityFrameworkCore;
-
 namespace AuditLogSample.Domain.Features.AuditLog;
 
 public sealed class AuditLogService : IAuditService

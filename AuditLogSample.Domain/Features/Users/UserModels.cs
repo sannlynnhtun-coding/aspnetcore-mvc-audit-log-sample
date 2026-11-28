@@ -1,6 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-using AuditLogSample.Domain.Features.AuditLog;
-
 namespace AuditLogSample.Domain.Features.Users;
 
 /// <summary>

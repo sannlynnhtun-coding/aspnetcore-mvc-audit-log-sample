@@ -1,13 +1,10 @@
-using AuditLogSample.Database.AppDbContextModels;
-using Microsoft.EntityFrameworkCore;
+namespace AuditLogSample.Domain.Events.AuditLogEvent.Tasks;
 
-namespace AuditLogSample.Domain.Features.AuditLog;
-
-public sealed class FindAffectedUser : IFindAffectedUser
+public sealed class AuditLogDbService : IAuditLogDbService
 {
     private readonly AppDbContext _dbContext;
 
-    public FindAffectedUser(AppDbContext dbContext)
+    public AuditLogDbService(AppDbContext dbContext)
     {
         _dbContext = dbContext;
     }

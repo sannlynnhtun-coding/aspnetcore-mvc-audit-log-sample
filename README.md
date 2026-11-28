@@ -3,9 +3,9 @@
 Feature-driven 4-project **ASP.NET Core Web API (.NET 10)** demonstrating:
 
 - **CRUD + Maker/Checker Approve & Reject** → `Controller` + `IUserService` + `UserValidationPolicy` returning `Result` / `Result<T>`
-- **Audit Log via MediatR** → `AuditEvent` (`INotification`) → `AuditEventHandler` → `IAuditService`
+- **Audit Log via MediatR** → `AuditLogEventRequest` (`INotification`) → `AuditLogEventService` → `IAuditService`
 - **Atomic SQLite Persistence** → Scoped `AppDbContext` commits entity changes and `TblAuditLog` in a single transaction against `AuditLogSample.db`
-- **Finding the affected user** → `FindAffectedUser` inspects EF Core `ChangeTracker` first (including newly created or deleted entities) and falls back to database lookup by ID, email, or mobile number
+- **Finding the affected user** → `AuditLogDbService` inspects EF Core `ChangeTracker` first (including newly created or deleted entities) and falls back to database lookup by ID, email, or mobile number
 - **Header-Aware Actor Identity** → `CurrentUser` reads `X-User-Id` and `X-User-Role` headers (defaults to `maker-001` / `Admin`)
 - **OpenAPI + Scalar UI** → Built-in `Microsoft.AspNetCore.OpenApi` + `Scalar.AspNetCore`
 
@@ -23,8 +23,10 @@ AuditLogSample/
 │   └── Program.cs
 ├── AuditLogSample.Domain/                # Feature slices, services, policies, MediatR audit handler
 │   ├── FeatureManager.cs                 # DI registration (builder.AddDomain())
+│   ├── GlobalUsings.cs
+│   ├── Events/AuditLogEvent/             # Event service, request, mapper, and database task
 │   └── Features/
-│       ├── AuditLog/                     # AuditEvent, AuditEventHandler, AuditLogService, IAuditService, FindAffectedUser
+│       ├── AuditLog/                     # AuditLogService, IAuditService
 │       └── Users/                        # UserService (with private TrackChanges), IUserService, UserValidationPolicy, UserModels
 ├── AuditLogSample.Database/              # EF Core DbContext, initializer, and entity models
 │   └── AppDbContextModels/

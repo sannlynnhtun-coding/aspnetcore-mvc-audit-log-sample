@@ -1,6 +1,3 @@
-using AuditLogSample.Database.AppDbContextModels;
-using AuditLogSample.Shared;
-
 namespace AuditLogSample.Domain.Features.Users;
 
 public sealed class UserValidationPolicy

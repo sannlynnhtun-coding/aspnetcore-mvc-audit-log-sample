@@ -1,8 +1,6 @@
-using MediatR;
+namespace AuditLogSample.Domain.Events.AuditLogEvent.Dtos;
 
-namespace AuditLogSample.Domain.Features.AuditLog;
-
-public sealed record AuditEvent(
+public sealed record AuditLogEventRequest(
     string Action,
     string ResourceType,
     string TargetId,

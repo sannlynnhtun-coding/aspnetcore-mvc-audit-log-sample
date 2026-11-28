@@ -1,6 +1,6 @@
-namespace AuditLogSample.Domain.Features.AuditLog;
+namespace AuditLogSample.Domain.Events.AuditLogEvent.Tasks;
 
-public interface IFindAffectedUser
+public interface IAuditLogDbService
 {
     Task<AuditTarget?> FindUserAsync(CancellationToken cancellationToken, params string?[] lookupKeys);
 }

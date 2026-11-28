@@ -1,5 +1,3 @@
-using AuditLogSample.Database.AppDbContextModels;
-
 namespace AuditLogSample.Domain.Features.AuditLog;
 
 public interface IAuditService
