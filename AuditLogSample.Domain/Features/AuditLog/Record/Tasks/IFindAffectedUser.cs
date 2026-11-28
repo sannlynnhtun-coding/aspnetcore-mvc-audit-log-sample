@@ -1,6 +1,6 @@
 namespace AuditLogSample.Domain.Features.AuditLog;
 
-public interface IAffectedUserLookup
+public interface IFindAffectedUser
 {
     Task<AuditTarget?> FindUserAsync(CancellationToken cancellationToken, params string?[] lookupKeys);
 }

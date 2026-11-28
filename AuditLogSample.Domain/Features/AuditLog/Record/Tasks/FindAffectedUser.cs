@@ -3,11 +3,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AuditLogSample.Domain.Features.AuditLog;
 
-public sealed class AffectedUserLookup : IAffectedUserLookup
+public sealed class FindAffectedUser : IFindAffectedUser
 {
     private readonly AppDbContext _dbContext;
 
-    public AffectedUserLookup(AppDbContext dbContext)
+    public FindAffectedUser(AppDbContext dbContext)
     {
         _dbContext = dbContext;
     }
