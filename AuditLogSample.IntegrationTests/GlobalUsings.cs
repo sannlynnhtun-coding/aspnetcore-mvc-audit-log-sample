@@ -1,0 +1,16 @@
+global using System.Net;
+global using System.Net.Http.Json;
+global using AuditLogSample.Api;
+global using AuditLogSample.Database.AppDbContextModels;
+global using AuditLogSample.Domain.Features.AuditLog;
+global using AuditLogSample.Domain.Features.Users;
+global using AuditLogSample.Shared;
+global using Microsoft.AspNetCore.Hosting;
+global using Microsoft.AspNetCore.Mvc.Testing;
+global using Microsoft.AspNetCore.TestHost;
+global using Microsoft.Data.Sqlite;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.EntityFrameworkCore.Infrastructure;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.DependencyInjection.Extensions;
+global using Xunit;

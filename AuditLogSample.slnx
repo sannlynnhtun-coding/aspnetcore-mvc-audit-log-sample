@@ -2,5 +2,6 @@
   <Project Path="AuditLogSample.Api/AuditLogSample.Api.csproj" />
   <Project Path="AuditLogSample.Domain/AuditLogSample.Domain.csproj" />
   <Project Path="AuditLogSample.Database/AuditLogSample.Database.csproj" />
+  <Project Path="AuditLogSample.IntegrationTests/AuditLogSample.IntegrationTests.csproj" />
   <Project Path="AuditLogSample.Shared/AuditLogSample.Shared.csproj" />
 </Solution>
