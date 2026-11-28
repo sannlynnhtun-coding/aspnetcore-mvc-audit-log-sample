@@ -18,24 +18,19 @@ public sealed class AuditEventHandler : INotificationHandler<AuditEvent>
 
     public async Task Handle(AuditEvent notification, CancellationToken cancellationToken)
     {
-        var changesText = notification.Changes?.Count > 0
-            ? string.Join(" | ", notification.Changes.Select(c =>
-                $"{c.FieldName}: {c.OldValue} → {c.NewValue}"))
-            : null;
+        #region Prepare audit details
 
-        if (!string.IsNullOrEmpty(notification.OldStatus) || !string.IsNullOrEmpty(notification.NewStatus))
-        {
-            var statusChange = $"Status: {notification.OldStatus} → {notification.NewStatus}";
-            changesText = string.IsNullOrEmpty(changesText)
-                ? statusChange
-                : $"{changesText} | {statusChange}";
-        }
+        var changesText = AuditChangeFormatter.Format(notification);
 
         var target = await _auditTargetResolver.ResolveUserAsync(
             cancellationToken,
             notification.TargetLookupKey,
             notification.TargetUserId,
             notification.TargetId);
+
+        #endregion
+
+        #region Write the audit log
 
         var log = new TblAuditLog
         {
@@ -54,5 +49,7 @@ public sealed class AuditEventHandler : INotificationHandler<AuditEvent>
         };
 
         await _auditService.LogAsync(log, cancellationToken);
+
+        #endregion
     }
 }
