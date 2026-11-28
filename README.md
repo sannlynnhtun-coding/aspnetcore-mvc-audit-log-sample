@@ -5,7 +5,7 @@ Feature-driven 4-project **ASP.NET Core Web API (.NET 10)** demonstrating:
 - **CRUD + Maker/Checker Approve & Reject** → `Controller` + `IUserService` + `UserValidationPolicy` returning `Result` / `Result<T>`
 - **Audit Log via MediatR** → `AuditEvent` (`INotification`) → `AuditEventHandler` → `IAuditService`
 - **Atomic SQLite Persistence** → Scoped `AppDbContext` commits entity changes and `TblAuditLog` in a single transaction against `AuditLogSample.db`
-- **Target Resolution** → `AuditTargetResolver` inspects EF Core `ChangeTracker` first (including newly created or deleted entities) and falls back to database lookup by ID, email, or mobile number
+- **Target Lookup** → `AuditTargetLookup` inspects EF Core `ChangeTracker` first (including newly created or deleted entities) and falls back to database lookup by ID, email, or mobile number
 - **Header-Aware Actor Identity** → `CurrentUser` reads `X-User-Id` and `X-User-Role` headers (defaults to `maker-001` / `Admin`)
 - **OpenAPI + Scalar UI** → Built-in `Microsoft.AspNetCore.OpenApi` + `Scalar.AspNetCore`
 
@@ -24,7 +24,7 @@ AuditLogSample/
 ├── AuditLogSample.Domain/                # Feature slices, services, policies, MediatR audit handler
 │   ├── FeatureManager.cs                 # DI registration (builder.AddDomain())
 │   └── Features/
-│       ├── AuditLog/                     # AuditEvent, AuditEventHandler, AuditLogService, IAuditService, AuditTargetResolver
+│       ├── AuditLog/                     # AuditEvent, AuditEventHandler, AuditLogService, IAuditService, AuditTargetLookup
 │       └── Users/                        # UserService (with private TrackChanges), IUserService, UserValidationPolicy, UserModels
 ├── AuditLogSample.Database/              # EF Core DbContext, initializer, and entity models
 │   └── AppDbContextModels/

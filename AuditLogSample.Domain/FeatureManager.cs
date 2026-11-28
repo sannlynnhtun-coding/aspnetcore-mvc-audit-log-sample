@@ -26,7 +26,7 @@ public static class FeatureManager
             cfg.RegisterServicesFromAssembly(typeof(FeatureManager).Assembly));
 
         // AuditLog feature
-        builder.Services.AddScoped<IAuditTargetResolver, AuditTargetResolver>();
+        builder.Services.AddScoped<IAuditTargetLookup, AuditTargetLookup>();
         builder.Services.AddScoped<IAuditService, AuditLogService>();
 
         // Users feature

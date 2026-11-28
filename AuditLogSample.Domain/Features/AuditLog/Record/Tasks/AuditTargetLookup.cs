@@ -3,16 +3,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AuditLogSample.Domain.Features.AuditLog;
 
-public sealed class AuditTargetResolver : IAuditTargetResolver
+public sealed class AuditTargetLookup : IAuditTargetLookup
 {
     private readonly AppDbContext _dbContext;
 
-    public AuditTargetResolver(AppDbContext dbContext)
+    public AuditTargetLookup(AppDbContext dbContext)
     {
         _dbContext = dbContext;
     }
 
-    public async Task<AuditTarget?> ResolveUserAsync(CancellationToken cancellationToken, params string?[] lookupKeys)
+    public async Task<AuditTarget?> FindUserAsync(CancellationToken cancellationToken, params string?[] lookupKeys)
     {
         foreach (var lookupKey in lookupKeys.Select(Normalize).Where(key => key is not null))
         {
