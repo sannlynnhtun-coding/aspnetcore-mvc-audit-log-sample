@@ -1,10 +1,3 @@
-using System.Text.Json.Serialization;
-using AuditLogSample.Api;
-using AuditLogSample.Database.AppDbContextModels;
-using AuditLogSample.Domain;
-using AuditLogSample.Shared;
-using Scalar.AspNetCore;    
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Resolve the existing root-level AuditLogSample.db seamlessly whether started from solution root or AuditLogSample.Api/

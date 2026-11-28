@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-
 namespace AuditLogSample.Database.AppDbContextModels;
 
 public class AppDbContext : DbContext

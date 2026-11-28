@@ -1,7 +1,3 @@
-using AuditLogSample.Domain.Features.AuditLog;
-using AuditLogSample.Shared;
-using Microsoft.AspNetCore.Mvc;
-
 namespace AuditLogSample.Api.Controllers.Features.AuditLog;
 
 [ApiController]

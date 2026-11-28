@@ -1,0 +1,10 @@
+global using AuditLogSample.Api;
+global using AuditLogSample.Database.AppDbContextModels;
+global using AuditLogSample.Domain;
+global using AuditLogSample.Domain.Features.AuditLog;
+global using AuditLogSample.Domain.Features.Users;
+global using AuditLogSample.Shared;
+global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.AspNetCore.Mvc.ModelBinding;
+global using Scalar.AspNetCore;
+global using System.Text.Json.Serialization;

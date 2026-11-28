@@ -1,8 +1,3 @@
-using AuditLogSample.Domain.Features.Users;
-using AuditLogSample.Shared;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-
 namespace AuditLogSample.Api.Controllers.Features.Users;
 
 [ApiController]

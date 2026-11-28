@@ -1,7 +1,3 @@
-using System.Data;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
-
 namespace AuditLogSample.Database.AppDbContextModels;
 
 public static class DbInitializer

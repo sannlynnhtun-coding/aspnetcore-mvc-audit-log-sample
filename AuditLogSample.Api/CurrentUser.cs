@@ -1,5 +1,3 @@
-using AuditLogSample.Shared;
-
 namespace AuditLogSample.Api;
 
 /// <summary>
