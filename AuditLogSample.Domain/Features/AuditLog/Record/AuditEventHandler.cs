@@ -6,14 +6,14 @@ namespace AuditLogSample.Domain.Features.AuditLog;
 public sealed class AuditEventHandler : INotificationHandler<AuditEvent>
 {
     private readonly IAuditService _auditService;
-    private readonly IAuditTargetLookup _auditTargetLookup;
+    private readonly IAffectedUserLookup _affectedUserLookup;
 
     public AuditEventHandler(
         IAuditService auditService,
-        IAuditTargetLookup auditTargetLookup)
+        IAffectedUserLookup affectedUserLookup)
     {
         _auditService = auditService;
-        _auditTargetLookup = auditTargetLookup;
+        _affectedUserLookup = affectedUserLookup;
     }
 
     public async Task Handle(AuditEvent notification, CancellationToken cancellationToken)
@@ -22,7 +22,7 @@ public sealed class AuditEventHandler : INotificationHandler<AuditEvent>
 
         var changesText = AuditChangeFormatter.Format(notification);
 
-        var target = await _auditTargetLookup.FindUserAsync(
+        var target = await _affectedUserLookup.FindUserAsync(
             cancellationToken,
             notification.TargetLookupKey,
             notification.TargetUserId,
