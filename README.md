@@ -1,5 +1,7 @@
 # Audit Log Sample – .NET 10 Web API
 
+[![.NET tests](https://github.com/sannlynnhtun-coding/aspnetcore-mvc-audit-log-sample/actions/workflows/dotnet-test.yml/badge.svg?branch=master)](https://github.com/sannlynnhtun-coding/aspnetcore-mvc-audit-log-sample/actions/workflows/dotnet-test.yml)
+
 Feature-driven 4-project **ASP.NET Core Web API (.NET 10)** demonstrating:
 
 - **CRUD + Maker/Checker Approve & Reject** → `Controller` + `IUserService` + `UserValidationPolicy` returning `Result` / `Result<T>`
@@ -63,6 +65,16 @@ dotnet run --project AuditLogSample.Api
 - **Scalar API UI:** `http://localhost:62243/scalar/v1` (or `https://localhost:62242/scalar/v1`)
 - **OpenAPI JSON:** `http://localhost:62243/openapi/v1.json`
 - **HTTP Test File:** `AuditLogSample.Api/AuditLogSample.Api.http`
+
+## Run integration tests
+
+With the .NET 10 SDK installed, run this command from the solution root.
+
+```sh
+dotnet test
+```
+
+The User and Audit Log integration test starts the API in a test host and uses a temporary SQLite database. It deletes that database when the test finishes. No running API or local database setup is required.
 
 ## Screenshots (Scalar API UI)
 
