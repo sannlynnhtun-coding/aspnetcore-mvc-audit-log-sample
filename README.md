@@ -1,79 +1,71 @@
-# Audit Log Sample – ASP.NET Core MVC
+# Audit Log Sample – .NET 10 Web API
 
-Clean sample showing:
+Feature-driven 4-project **ASP.NET Core Web API (.NET 10)** demonstrating:
 
-- **CRUD + Approve/Reject** → simple `Controller` + `Service` with Dependency Injection
-- **Audit Log** → **MediatR only** (`AuditEvent` → `AuditEventHandler`)
-- **SQLite persistence** → EF Core stores users and audit logs in `AuditLogSample.db`
-- **Target resolution** → audit events can pass a user id, email, or mobile number and the handler stores the resolved user name/id
-- Tailwind CSS for modern UI
+- **CRUD + Maker/Checker Approve & Reject** → `Controller` + `IUserService` + `UserValidationPolicy` returning `Result` / `Result<T>`
+- **Audit Log via MediatR** → `AuditEvent` (`INotification`) → `AuditEventHandler` → `IAuditService`
+- **Atomic SQLite Persistence** → Scoped `AppDbContext` commits entity changes and `TblAuditLog` in a single transaction against `AuditLogSample.db`
+- **Target Resolution** → `AuditTargetResolver` inspects EF Core `ChangeTracker` first (including newly created or deleted entities) and falls back to database lookup by ID, email, or mobile number
+- **Header-Aware Actor Identity** → `CurrentUser` reads `X-User-Id` and `X-User-Role` headers (defaults to `maker-001` / `Admin`)
+- **OpenAPI + Scalar UI** → Built-in `Microsoft.AspNetCore.OpenApi` + `Scalar.AspNetCore`
 
-## Architecture
+## Solution Structure
 
+```text
+AuditLogSample/
+├── AuditLogSample.slnx
+├── AuditLogSample.Api/                   # ASP.NET Core Web API, Controllers, OpenAPI/Scalar
+│   ├── Controllers/Features/
+│   │   ├── AuditLog/AuditLogController.cs
+│   │   └── Users/UserController.cs
+│   ├── CurrentUser.cs
+│   ├── AuditLogSample.Api.http
+│   └── Program.cs
+├── AuditLogSample.Domain/                # Feature slices, services, policies, MediatR audit handler
+│   ├── FeatureManager.cs                 # DI registration (builder.AddDomain())
+│   └── Features/
+│       ├── AuditLog/                     # AuditEvent, AuditEventHandler, AuditLogService, IAuditService, AuditTargetResolver
+│       └── Users/                        # UserService (with private TrackChanges), IUserService, UserValidationPolicy, UserModels
+├── AuditLogSample.Database/              # EF Core DbContext, initializer, and entity models
+│   └── AppDbContextModels/
+│       ├── AppDbContext.cs
+│       ├── DbInitializer.cs
+│       ├── TblAuditLog.cs
+│       └── TblUser.cs
+└── AuditLogSample.Shared/                # Shared Result / Result<T> wrapper & ICurrentUser
+    ├── ICurrentUser.cs
+    └── Result.cs
 ```
-Controller (UserController)
-      │
-      ▼
-UserService  (simple DI service)
-      │  1. Business logic (Create / Update / Delete / Approve / Reject)
-      │  2. TrackChanges (your original helper)
-      │  3. _mediator.Publish(AuditEvent)
-      ▼
-MediatR
-      ▼
-AuditEventHandler : INotificationHandler<AuditEvent>
-      │  1. Resolve target user from target id / email / mobile lookup key
-      │  2. Write resolved target name, user id, and mobile into the log
-      ▼
-IAuditLogService → SQLite AuditLog store
-```
 
-## Features
+## API Endpoints
 
-| Action   | Flow                                      | Audit Action |
-|----------|-------------------------------------------|--------------|
-| Create   | Status = Pending                          | CREATE       |
-| Approve  | Pending → Approved                        | APPROVE      |
-| Reject   | Pending → Rejected                        | REJECT       |
-| Update   | TrackChanges (Name/Email/Limit)           | UPDATE       |
-| Delete   | Remove user                               | DELETE       |
-
-## Audit Log Fields
-
-- `actor_user_id` / `actor_role`
-- `action` (CREATE / UPDATE / DELETE / APPROVE / REJECT)
-- `resource_type` / `target_id` / `target_lookup_key`
-- `target_user_id` / `target_user_name` / `target_user_mobile_no`
-- `changes` (Before → After)
-- `reason`
-- `action_date_time`
+| Method | Route | Description | Audit Action |
+|--------|-------|-------------|--------------|
+| `GET` | `/api/users` | List all users | — |
+| `GET` | `/api/users/{id}` | Get user details + target audit logs | — |
+| `POST` | `/api/users` | Create user (`Status = Pending`) | `CREATE` |
+| `PUT` | `/api/users/{id}` | Update user fields via `TrackChanges` | `UPDATE` |
+| `DELETE` | `/api/users/{id}?reason=...` | Delete user | `DELETE` |
+| `POST` | `/api/users/{id}/approve` | Approve user (`Pending → Approved`) | `APPROVE` |
+| `POST` | `/api/users/{id}/reject` | Reject user (`Pending → Rejected`) | `REJECT` |
+| `GET` | `/api/audit-logs` | List all audit logs | — |
+| `GET` | `/api/audit-logs/target/{targetId}` | List audit logs for a user/target | — |
 
 ## Run
 
 ```bash
-cd AuditLogSample
-dotnet restore
-dotnet run
+dotnet build AuditLogSample.slnx
+dotnet run --project AuditLogSample.Api
 ```
 
-Open https://localhost:5xxx (or the port shown).
+- **Scalar API UI:** `http://localhost:62243/scalar/v1` (or `https://localhost:62242/scalar/v1`)
+- **OpenAPI JSON:** `http://localhost:62243/openapi/v1.json`
+- **HTTP Test File:** `AuditLogSample.Api/AuditLogSample.Api.http`
 
-The app creates `AuditLogSample.db` automatically on startup and seeds the demo
-user when the `Users` table is empty. The default connection string is in
-`appsettings.json`.
+## Screenshots (Scalar API UI)
 
-## Key files
+### Create User (`POST /api/users`)
+![Scalar UI - Create User](docs/images/scalar-create-user.jpg)
 
-- `Services/UserService.cs` – business logic + publishes `AuditEvent`
-- `Events/AuditEvent.cs` – MediatR notification
-- `Handlers/AuditEventHandler.cs` – writes the final audit log
-- `Services/ObjectModifier.cs` – your original `TrackChanges`
-- `Controllers/UserController.cs` – thin controller
-- `Controllers/AuditController.cs` – list all audit logs
-
-## Notes
-
-- Current user is hardcoded as `maker-001` / `Admin` for demo.
-  In production replace `CurrentUser` with `IHttpContextAccessor` + claims.
-- Data is stored in SQLite and persists across restarts.
-- Tailwind is loaded via CDN for simplicity.
+### View Audit Logs (`GET /api/audit-logs`)
+![Scalar UI - Audit Logs](docs/images/scalar-audit-logs.jpg)
